@@ -21,23 +21,19 @@ const gameList: Game[] = [
   },
   {
     name: "Button mashing",
-    route: "/reaction-time",
+    route: "/button-mashing",
   },
   {
     name: "Remembering sequences",
-    route: "/reaction-time",
+    route: "/sequences",
   },
   {
     name: "Typing speed",
-    route: "/reaction-time",
+    route: "/typing-speed",
   },
   {
     name: "Simple math",
-    route: "/reaction-time",
-  },
-  {
-    name: "Simple math",
-    route: "/reaction-time",
+    route: "/math",
   },
 ];
 

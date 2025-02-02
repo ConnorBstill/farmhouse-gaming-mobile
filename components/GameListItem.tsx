@@ -11,8 +11,8 @@ import { Game } from "../lib/types";
 
 const GameListItem = ({ route, name }: Game) => {
   return (
-    <Link href={route} asChild style={styles.container}>
-      <Pressable style={styles.pressable}>
+    <Link href={route} asChild>
+      <Pressable style={styles.container}>
         <ThemedText style={styles.text}>{name}</ThemedText>
       </Pressable>
     </Link>
