@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "pretty": "npx prettier --write app/ components/ constants/ hooks/ lib/ scripts/"
   },
   "jest": {
     "preset": "jest-expo"
@@ -30,6 +31,7 @@
     "expo-symbols": "~0.2.1",
     "expo-system-ui": "~4.0.7",
     "expo-web-browser": "~14.0.2",
+    "prettier": "^3.4.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.6",
