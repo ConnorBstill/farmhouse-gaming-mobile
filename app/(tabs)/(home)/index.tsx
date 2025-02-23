@@ -35,6 +35,14 @@ const gameList: Game[] = [
     name: "Simple math",
     route: "/math",
   },
+  {
+    name: "Word Unscramble",
+    route: "/shuffle-word",
+  },
+  {
+    name: "Time Estimation",
+    route: "/time-estimation",
+  },
 ];
 
 export default function HomeScreen() {
