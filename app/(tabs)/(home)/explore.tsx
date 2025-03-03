@@ -115,7 +115,7 @@ export default function App() {
   );
 
   // Custom Input Component
-  const CustomInput = ({ placeholder, value, onChangeText, secureTextEntry = false }) => (
+  const CustomInput = ({ placeholder, value, onChangeText, secureTextEntry = false }: any) => (
     <View style={styles.inputWrapper}>
       <TextInput
         style={styles.input}
@@ -129,7 +129,7 @@ export default function App() {
   );
 
   // Screen wrapper with animations
-  const ScreenWrapper = ({ children }) => (
+  const ScreenWrapper = ({ children }: any) => (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#030617" />
       <View style={styles.backgroundGradient}>

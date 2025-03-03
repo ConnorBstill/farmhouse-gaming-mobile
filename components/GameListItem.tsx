@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Platform, Pressable } from "react-native";
+import { Image, StyleSheet, Platform, Pressable, Text } from "react-native";
 import { Link } from "expo-router";
 import { RelativePathString } from "expo-router";
 
@@ -9,11 +9,11 @@ import { ThemedView } from "@/components/ThemedView";
 
 import { Game } from "../lib/types";
 
-const GameListItem = ({ route, name }: Game) => {
+const GameListItem = ({ route, name, icon }: Game) => {
   return (
     <Link href={route} asChild>
       <Pressable style={styles.container}>
-        <ThemedText style={styles.text}>{name}</ThemedText>
+        <Text style={styles.icon}>{icon}</Text><ThemedText style={styles.text}>{name}</ThemedText>
       </Pressable>
     </Link>
   );
@@ -21,22 +21,18 @@ const GameListItem = ({ route, name }: Game) => {
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: "center",
+    backgroundColor: "rgba(30, 41, 59, 0.7)",
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    // borderColor: 'black',
-    // borderWidth: 1,
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 8,
+    width: "90%",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 8,
-    height: 150,
-    width: 150,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   pressable: {
     alignItems: "center",
@@ -46,7 +42,11 @@ const styles = StyleSheet.create({
   },
   text: {
     textAlign: "center",
+    color: '#fff'
   },
+  icon: {
+    marginRight: 5
+  }
 });
 
 export { GameListItem };
