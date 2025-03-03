@@ -1,166 +1,232 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+  Text,
+  View,
+  TextInput,
+  Button,
+  Keyboard,
+} from 'react-native';
 
-const words = [
-  "apple",
-  "banana",
-  "cherry",
-  "developer",
-  "elephant",
-  "framework",
-  "javascript",
-  "reactnative",
-];
-
-const shuffleWord = (word: string) => {
-  return word
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
+type LeaderboardEntry = {
+  id: number;
+  score: number;
 };
 
-const WordUnscrambleGame = () => {
-  const [originalWord, setOriginalWord] = useState("");
-  const [scrambledWord, setScrambledWord] = useState("");
-  const [userInput, setUserInput] = useState("");
+// A small dictionary of words grouped by letter count.
+// You can expand these lists with additional words.
+const WORDS: { [key: number]: string[] } = {
+  4: ['game', 'word', 'code', 'play', 'test'],
+  5: ['apple', 'react', 'train', 'crazy', 'input'],
+  6: ['planet', 'stream', 'forest', 'bounce', 'rabbit'],
+  7: ['example', 'picture', 'network', 'fantasy', 'passion'],
+};
+
+const scrambleWord = (word: string): string => {
+  const arr = word.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  // If the scrambled word is identical to the original, scramble again (if word is long enough).
+  if (arr.join('') === word && word.length > 3) {
+    return scrambleWord(word);
+  }
+  return arr.join('');
+};
+
+const App = () => {
+  // Game states: "countdown" -> "playing" -> "finished"
+  const [gameState, setGameState] = useState<'countdown' | 'playing' | 'finished'>('countdown');
+  const [countdown, setCountdown] = useState(3);
+  const [gameTime, setGameTime] = useState(20);
   const [score, setScore] = useState(0);
-  const [gameRunning, setGameRunning] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<number[]>([]);
-  const [startTime, setStartTime] = useState<number | null>(null);
+  const [currentWord, setCurrentWord] = useState('');
+  const [scrambledWord, setScrambledWord] = useState('');
+  const [userAnswer, setUserAnswer] = useState('');
+  const [round, setRound] = useState(0);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
+  // Generate a new word based on the current round.
+  // We start with 4-letter words and add one letter after every 2 correct guesses.
+  const generateNewWord = () => {
+    const letterCount = 4 + Math.floor(round / 2);
+    const possibleWords = WORDS[letterCount];
+    if (!possibleWords || possibleWords.length === 0) {
+      // If there is no list for the current length, fall back to the highest available.
+      const maxAvailable = Math.max(...Object.keys(WORDS).map(Number));
+      const fallbackWords = WORDS[maxAvailable];
+      const word = fallbackWords[Math.floor(Math.random() * fallbackWords.length)];
+      setCurrentWord(word);
+      setScrambledWord(scrambleWord(word));
+      return;
+    }
+    const word = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+    setCurrentWord(word);
+    setScrambledWord(scrambleWord(word));
+  };
+
+  // Countdown before starting the game.
   useEffect(() => {
-    loadLeaderboard();
-  }, []);
-
-  const startGame = () => {
-    setScore(0);
-    nextWord();
-    setGameRunning(true);
-  };
-
-  const nextWord = () => {
-    const word = words[Math.floor(Math.random() * words.length)];
-    setOriginalWord(word);
-    setScrambledWord(shuffleWord(word));
-    setUserInput("");
-    setStartTime(Date.now());
-  };
-
-  const checkAnswer = () => {
-    if (userInput.toLowerCase() === originalWord.toLowerCase()) {
-      const timeTaken = Date.now() - (startTime || 0);
-      const calculatedScore = Math.max(10000 - timeTaken, 0);
-      setScore(score + calculatedScore);
-      nextWord();
-    }
-  };
-
-  const endGame = async () => {
-    setGameRunning(false);
-    saveScore(score);
-  };
-
-  const saveScore = async (finalScore: number) => {
-    try {
-      const storedScores = await AsyncStorage.getItem("leaderboard");
-      const scores = storedScores ? JSON.parse(storedScores) : [];
-      const updatedScores = [...scores, finalScore]
-        .sort((a, b) => b - a)
-        .slice(0, 5);
-      await AsyncStorage.setItem("leaderboard", JSON.stringify(updatedScores));
-      setLeaderboard(updatedScores);
-    } catch (error) {
-      console.error("Failed to save score", error);
-    }
-  };
-
-  const loadLeaderboard = async () => {
-    try {
-      const storedScores = await AsyncStorage.getItem("leaderboard");
-      if (storedScores) {
-        setLeaderboard(JSON.parse(storedScores));
+    if (gameState === 'countdown') {
+      if (countdown > 0) {
+        const countdownInterval = setInterval(() => {
+          setCountdown((prev) => prev - 1);
+        }, 1000);
+        return () => clearInterval(countdownInterval);
+      } else {
+        setGameState('playing');
+        generateNewWord();
       }
-    } catch (error) {
-      console.error("Failed to load leaderboard", error);
     }
+  }, [gameState, countdown]);
+
+  // Game timer for the 20‑second gameplay.
+  useEffect(() => {
+    let gameInterval: NodeJS.Timeout;
+    if (gameState === 'playing') {
+      if (gameTime > 0) {
+        gameInterval = setInterval(() => {
+          setGameTime((prev) => prev - 1);
+        }, 1000);
+      } else {
+        setGameState('finished');
+        // Add final score to the leaderboard.
+        const newEntry: LeaderboardEntry = { id: Date.now(), score };
+        setLeaderboard((prev) => [...prev, newEntry]);
+        Keyboard.dismiss();
+      }
+    }
+    return () => {
+      if (gameInterval) clearInterval(gameInterval);
+    };
+  }, [gameState, gameTime, score]);
+
+  // Handle when the user submits their answer.
+  const handleSubmit = () => {
+    if (userAnswer.trim().toLowerCase() === currentWord.toLowerCase()) {
+      setScore((prev) => prev + 1);
+      setRound((prev) => prev + 1);
+      generateNewWord();
+    }
+    // Clear input regardless of correctness.
+    setUserAnswer('');
   };
 
-  return (
-    <View style={styles.container}>
-      {gameRunning ? (
-        <View>
-          <Text style={styles.scrambledWord}>{scrambledWord}</Text>
+  // Restart the game.
+  const handleRestart = () => {
+    setCountdown(3);
+    setGameTime(20);
+    setScore(0);
+    setRound(0);
+    setUserAnswer('');
+    setCurrentWord('');
+    setScrambledWord('');
+    setGameState('countdown');
+  };
+
+  // Render different UI based on the current game state.
+  const renderGame = () => {
+    if (gameState === 'countdown') {
+      return (
+        <View style={styles.centered}>
+          <Text style={styles.countdownText}>{countdown}</Text>
+        </View>
+      );
+    } else if (gameState === 'playing') {
+      return (
+        <View style={styles.gameContainer}>
+          <Text style={styles.timerText}>Time: {gameTime}</Text>
+          <Text style={styles.scoreText}>Score: {score}</Text>
+          <Text style={styles.scrambledText}>{scrambledWord}</Text>
           <TextInput
             style={styles.input}
-            value={userInput}
-            onChangeText={setUserInput}
-            onSubmitEditing={checkAnswer}
-            autoFocus
+            value={userAnswer}
+            onChangeText={setUserAnswer}
+            placeholder="Type your answer"
+            autoCapitalize="none"
+            autoCorrect={false}
+            onSubmitEditing={handleSubmit}
           />
-          <Text style={styles.score}>Score: {score}</Text>
-          <TouchableOpacity style={styles.endButton} onPress={endGame}>
-            <Text style={styles.buttonText}>End Game</Text>
-          </TouchableOpacity>
+          <Button title="Submit" onPress={handleSubmit} />
         </View>
-      ) : (
-        <View style={styles.leaderboardContainer}>
-          <Text
-          // style={styles.title}
-          >
-            Leaderboard
-          </Text>
-          {leaderboard.map((item, index) => (
-            <Text key={index} style={styles.leaderboardItem}>
-              {index + 1}. {item} points
+      );
+    } else if (gameState === 'finished') {
+      // Sort the leaderboard in descending order.
+      const sortedLeaderboard = leaderboard.sort((a, b) => b.score - a.score);
+      return (
+        <View style={styles.centered}>
+          <Text style={styles.finalScore}>Final Score: {score}</Text>
+          <Text style={styles.leaderboardTitle}>Leaderboard</Text>
+          {sortedLeaderboard.map((entry, index) => (
+            <Text key={entry.id} style={styles.leaderboardEntry}>
+              {index + 1}. {entry.score}
             </Text>
           ))}
-          <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Text style={styles.buttonText}>Start Game</Text>
-          </TouchableOpacity>
+          <Button title="Play Again" onPress={handleRestart} />
         </View>
-      )}
-    </View>
-  );
+      );
+    }
+  };
+
+  return <View style={styles.container}>{renderGame()}</View>;
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scrambledWord: {
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countdownText: {
+    fontSize: 80,
+    fontWeight: 'bold',
+  },
+  gameContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timerText: {
     fontSize: 24,
-    fontWeight: "bold",
     marginBottom: 10,
-    textAlign: "center",
+  },
+  scoreText: {
+    fontSize: 24,
+    marginBottom: 10,
+  },
+  scrambledText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginVertical: 20,
   },
   input: {
-    borderBottomWidth: 2,
-    fontSize: 18,
-    width: "80%",
-    textAlign: "center",
+    height: 40,
+    width: '80%',
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  finalScore: {
+    fontSize: 32,
+    fontWeight: 'bold',
     marginBottom: 20,
   },
-  score: { fontSize: 20, marginTop: 20 },
-  leaderboardContainer: { alignItems: "center" },
-  leaderboardItem: { fontSize: 18, marginBottom: 5 },
-  startButton: {
-    backgroundColor: "blue",
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 20,
+  leaderboardTitle: {
+    fontSize: 28,
+    fontWeight: '600',
+    marginVertical: 10,
   },
-  endButton: {
-    backgroundColor: "red",
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 20,
+  leaderboardEntry: {
+    fontSize: 20,
   },
-  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
 });
 
-export default WordUnscrambleGame;
+export default App;
